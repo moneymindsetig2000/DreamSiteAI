@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Website Builder</title>
+    <!-- Devicon -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.15.1/devicon.min.css">
+    <!-- Monaco Editor CSS -->
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs/editor/editor.main.min.css">
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --dark: #111111;
+            --darker: #0f172a;
+            --light: #f1f5f9;
+            --gray: #94a3b8;
+            --border: #334155;
+            --code-bg: #111111;
+            --header-height: 60px;
+            --chat-width: 30%;
+            --preview-width: 70%;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+            
+            --bg-dark: #0f172a;
+            --panel-bg: #111111;
+            --text-light: #e2e8f0;
+            --text-gray: #94a3b8;
+            --input-bg: #1e293b;
+            --border-dark: #334155;
+            --file-explorer-width: 250px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background-color: var(--panel-bg);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .logo .dropdown-icon {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo.open .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        .header-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            width: 220px;
+            z-index: 110;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+        }
+
+        .header-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--input-bg);
+        }
+
+        .dropdown-item svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--text-gray);
+        }
+
+        .dropdown-item:first-child {
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom-left-radius: var(--border-radius);
+            border-bottom-right-radius: var(--border-radius);
+        }
+
+        .logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        #toggle-chat-btn {
+            margin-left: 24px;
+        }
+
+        #refresh-btn {
+            margin-left: 16px;
+        }
+
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .view-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-dark);
+            color: var(--text-gray);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .view-toggle-btn:hover {
+            background-color: var(--border-dark);
+            color: var(--text-light);
+        }
+
+        .view-toggle-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+            padding-top: var(--header-height);
+        }
+
+        .chat-panel {
+            width: var(--chat-width);
+            height: 100%;
+            border-right: 1px solid var(--border-dark);
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+            position: relative;
+            transition: width 0.3s ease, padding 0.3s ease;
+            overflow: hidden;
+        }
+
+        .main-container.chat-hidden .chat-panel {
+            width: 0;
+            padding: 0;
+            border-right: none;
+        }
+
+        .main-container.chat-hidden .code-preview-panel {
+            width: 100%;
+        }
+
+        .resize-handle {
+            position: absolute;
+            right: -5px;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            cursor: col-resize;
+            z-index: 10;
+            background: var(--border-dark);
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .resize-handle:hover {
+            opacity: 1;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 0;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            line-height: 1.5;
+        }
+
+        .message.ai {
+            background-color: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user {
+            background-color: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input-container {
+            padding: 16px;
+            border-top: 1px solid var(--border-dark);
+            background-color: var(--panel-bg);
+        }
+
+        .chat-input-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: 28px;
+            padding: 12px;
+            min-height: 100px;
+            justify-content: space-between;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-light);
+            font-size: 1rem;
+            padding: 0;
+            align-self: stretch;
+            height: 50px; 
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-gray);
+        }
+
+        .chat-actions-left, .chat-actions-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .chat-input-bottom-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .chat-action-btn {
+            background-color: #334155;
+            color: var(--text-light);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .chat-action-btn:hover {
+            background-color: #475569;
+        }
+
+        .chat-action-btn.icon-btn {
+            padding: 6px;
+            border-radius: 50%;
+        }
+
+        .chat-action-btn svg {
+            width: 14px;
+            height: 14px;
+            position: relative;
+            top: 2px;
+        }
+
+        .send-button {
+            background-color: var(--primary);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .send-button svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+            position: relative;
+            top: 2px;
+        }
+
+        .code-preview-panel {
+            width: var(--preview-width);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            padding: 16px;
+            transition: width 0.3s ease;
+        }
+
+        .panel-container {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            overflow: auto;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border: 1px solid var(--border-dark);
+        }
+
+        .code-container {
+            opacity: 1;
+            visibility: visible;
+            background: var(--code-bg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-container {
+            opacity: 0;
+            visibility: hidden;
+            background-color: white;
+        }
+
+        .preview-mode .code-container {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .preview-mode .preview-container {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .preview-container {
+            margin: auto;
+            transition: all 0.5s ease-in-out;
+        }
+
+
+        .preview-container.preview-tablet {
+            width: 768px;
+            height: 1024px;
+        }
+
+        .preview-container.preview-mobile {
+            width: 375px;
+            height: 667px;
+        }
+
+        .code-editor {
+            background-color: #111111;
+            color: #d4d4d4;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0;
+            border: none;
+        }
+
+        .editor-header {
+            background-color: #2d2d2d;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        .editor-title {
+            font-size: 0.875rem;
+            color: #9cdcfe;
+        }
+
+        .editor-content {
+            flex: 1;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+            position: relative;
+            display: flex;
+        }
+
+        /* File explorer styles */
+        .file-explorer {
+            width: var(--file-explorer-width);
+            background-color: #252526;
+            border-right: 1px solid #3c3c3c;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .explorer-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .explorer-title {
+            font-size: 0.875rem;
+            color: #cccccc;
+            font-weight: 500;
+        }
+
+        .explorer-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .explorer-btn {
+            background: none;
+            border: none;
+            color: #cccccc;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .explorer-btn:hover {
+            background-color: rgba(121, 121, 121, 0.4);
+        }
+
+        .file-tree {
+            padding: 8px 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tree-item .item-actions {
+            display: none;
+            margin-left: auto;
+            gap: 4px;
+        }
+
+        .tree-item:hover .item-actions {
+            display: flex;
+        }
+
+        .item-actions .action-btn {
+            background: none;
+            border: none;
+            color: #cccccc;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item-actions .action-btn:hover {
+            background-color: rgba(121, 121, 121, 0.4);
+        }
+
+        .item-actions .action-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .tree-item {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .folder-header {
+            padding: 6px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: #cccccc;
+        }
+
+        .folder-header:hover {
+            background-color: rgba(121, 121, 121, 0.2);
+        }
+
+        .folder-header.active {
+            background-color: rgba(37, 99, 235, 0.3);
+        }
+
+        .toggle-icon {
+            width: 16px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .toggle-icon svg, .folder-icon svg, .file-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 1.5;
+        }
+
+        .folder.open > .folder-header .toggle-icon {
+            transform: rotate(90deg);
+        }
+
+        .folder-icon {
+            width: 16px;
+            text-align: center;
+        }
+
+        .file-item {
+            padding: 6px 16px 6px 42px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: #cccccc;
+        }
+
+        .file-item:hover {
+            background-color: rgba(121, 121, 121, 0.2);
+        }
+
+        .file-item.active {
+            background-color: rgba(37, 99, 235, 0.3);
+        }
+
+        .file-icon {
+            width: 16px;
+            text-align: center;
+            font-size: 16px; /* For devicon */
+        }
+
+        .folder-children {
+            display: none;
+            padding-left: 16px;
+        }
+
+        .folder.open > .folder-children {
+            display: block;
+        }
+
+        /* Monaco editor container */
+        .monaco-editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #monaco-editor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #111111;
+            display: block;
+            border-radius: 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .chat-panel, .code-preview-panel {
+                width: 100%;
+                height: 50%;
+            }
+            
+            .resize-handle {
+                display: none;
+            }
+            
+            .code-preview-panel {
+                padding: 8px;
+            }
+            
+            .panel-container {
+                top: 8px;
+                left: 8px;
+                right: 8px;
+                bottom: 8px;
+            }
+        }
+
+        /* Popup styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .popup-content {
+            background-color: var(--panel-bg);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border-dark);
+        }
+
+        .popup-content h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-light);
+        }
+
+        .popup-content input {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .popup-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .popup-actions .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            font-size: 0.9rem;
+        }
+
+        .popup-actions .btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .popup-actions .btn.primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .popup-actions .btn.secondary {
+            background-color: var(--border-dark);
+            color: var(--text-light);
+        }
+
+        .popup-actions .btn.secondary:hover {
+            background-color: #4a5568;
+        }
+        
+        .popup-actions .btn.danger {
+            background-color: #e53e3e;
+            color: white;
+        }
+
+        .popup-actions .btn.danger:hover {
+            background-color: #c53030;
+        }
+
+        .publish-btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .publish-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .publish-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .icon-btn {
+            background-color: var(--dark);
+            color: var(--text-gray);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            border: 1px solid var(--border-dark);
+            font-size: 1.2rem;
+        }
+
+        .icon-btn:hover {
+            background-color: var(--border);
+            color: var(--text-light);
+        }
+
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--panel-bg);
+            color: var(--text-light);
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, bottom 0.3s;
+        }
+
+        .toast-message.show {
+            opacity: 1;
+            visibility: visible;
+            bottom: 40px;
+        }
+
+        .glowing-bulb {
+            animation: glow 1.5s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                filter: drop-shadow(0 0 2px #ffdd00);
+            }
+            to {
+                filter: drop-shadow(0 0 8px #ffdd00);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo" id="logo-container">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+            <span>AI Website Builder</span>
+            <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <div class="header-dropdown" id="header-dropdown">
+                <div class="dropdown-item" id="dashboard-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    <span>Dashboard</span>
+                </div>
+                <div class="dropdown-item" id="settings-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </div>
+                <div class="dropdown-item" id="appearance-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <span>Appearance</span>
+                </div>
+                <div class="dropdown-item" id="agent-mode-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Agent Mode</span>
+                </div>
+                <div class="dropdown-item" id="api-key-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                    <span>Use your own API</span>
+                </div>
+            </div>
+        </div>
+        <button id="toggle-chat-btn" class="icon-btn" title="Hide Chat Panel">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                <path d="M9 3v18"></path>
+                <path d="m13 9-3 3 3 3"></path>
+            </svg>
+        </button>
+        <button id="refresh-btn" class="icon-btn" title="Refresh Preview">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </button>
+        <button id="open-preview-btn" class="icon-btn" title="Open Preview in New Tab" style="margin-left: 16px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </button>
+        <div class="header-actions" style="flex: 1; justify-content: center;">
+            <button id="screen-size-toggle-btn" class="icon-btn" title="Toggle Screen Size">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-desktop"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </button>
+        </div>
+        
+        <div class="header-actions">
+            <button id="view-toggle-btn" class="view-toggle-btn" title="Toggle View"></button>
+            <button id="github-btn" class="icon-btn" title="GitHub Integration (Coming Soon)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+            </button>
+            <button id="supabase-btn" class="icon-btn" title="Supabase Integration (Coming Soon)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21.6,9.28l-9-6.55a.6.6,0,0,0-.69,0l-9,6.55a.6.6,0,0,0,.35,1.09L12,14.45l8.64-4.08A.6.6,0,0,0,21.6,9.28Z" fill="#3ecf8e"/>
+                    <path d="M12,15.5,3.36,11.42a.6.6,0,0,0-.69.92l9,6.55a.6.6,0,0,0,.69,0l9-6.55a.6.6,0,0,0-.69-.92Z" fill="#3ecf8e"/>
+                </svg>
+            </button>
+            <button id="publish-btn" class="publish-btn" title="Publish Project">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <span>Publish</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="chat-panel">
+            <div class="chat-messages">
+                <div class="message ai">
+                    Hi! I'm your AI website assistant. What can I help you build today?
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input type="text" class="chat-input" placeholder="Ask Lovable...">
+                    <div class="chat-input-bottom-actions">
+                        <div class="chat-actions-left">
+                            <button class="chat-action-btn icon-btn" id="add-image-btn" title="Add Image">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            <button class="chat-action-btn" id="edit-btn" title="Edit (Coming Soon)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                <span>Edit</span>
+                            </button>
+                        </div>
+                        <div class="chat-actions-right">
+                            <button class="chat-action-btn" id="chat-mode-btn" title="Chat Mode (Coming Soon)">
+                                <svg class="glowing-bulb" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><line x1="12" y1="12" x2="12" y2="22"></line><path d="M12 2a7 7 0 0 1 5 10v0a5 5 0 0 1-10 0v0A7 7 0 0 1 12 2z"></path></svg>
+                                <span>Chat</span>
+                            </button>
+                            <button class="send-button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div class="code-preview-panel">
+            <div class="panel-container code-container">
+                <div class="code-editor">
+                    <div class="editor-header">
+                        <div class="editor-title">Project Files</div>
+                    </div>
+                    <div class="editor-content">
+                        <div class="file-explorer">
+                            <div class="explorer-header">
+                                <div class="explorer-title">Explorer</div>
+                                <div class="explorer-actions">
+                                    <button class="explorer-btn" id="new-file-btn" title="New File">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M8.5 2.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5a.5.5 0 0 1 1 0z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="explorer-btn" id="new-folder-btn" title="New Folder">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M.5 3.118A1.5 1.5 0 0 1 2 2h3.982a1.5 1.5 0 0 1 1.06.44L8.19 3.59a.5.5 0 0 0 .354.146H14a.5.5 0 0 1 .5.5v1.5a.5.5 0 0 1-1 0V4.5h-5.146a1.5 1.5 0 0 1-1.06-.44L6.02 2.5H2A.5.5 0 0 0 1.5 3v10a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V9.618a.5.5 0 0 1 1 0V13a1.5 1.5 0 0 1-1.5 1.5H2A1.5 1.5 0 0 1 .5 13V3.118z"/>
+                                            <path d="M13.5 6.5a.5.5 0 0 1 .5.5v1.5h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V9h-1.5a.5.5 0 0 1 0-1H13V7a.5.5 0 0 1 .5-.5z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="file-tree" id="file-tree">
+                                <div class="tree-item folder" data-name="Project">
+                                    <div class="folder-header">
+                                        <span class="toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                                        <span class="folder-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+                                        <span class="name">Project</span>
+                                        <div class="item-actions">
+                                            <button class="action-btn add-file-btn" title="New File"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-plus"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg></button>
+                                            <button class="action-btn add-folder-btn" title="New Folder"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder-plus"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg></button>
+                                            <button class="action-btn rename-btn" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                                            <button class="action-btn delete-btn" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                                        </div>
+                                    </div>
+                                    <div class="folder-children">
+                                        <div class="tree-item file active" data-name="index.html" data-type="html">
+                                            <div class="file-item">
+                                                <span class="file-icon"><i class="devicon-html5-plain colored"></i></span>
+                                                <span>index.html</span>
+                                                <div class="item-actions">
+                                                    <button class="action-btn rename-btn" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                                                    <button class="action-btn delete-btn" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="tree-item file" data-name="styles.css" data-type="css">
+                                            <div class="file-item">
+                                                <span class="file-icon"><i class="devicon-css3-plain colored"></i></span>
+                                                <span>styles.css</span>
+                                                <div class="item-actions">
+                                                    <button class="action-btn rename-btn" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                                                    <button class="action-btn delete-btn" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="tree-item file" data-name="script.js" data-type="javascript">
+                                            <div class="file-item">
+                                                <span class="file-icon"><i class="devicon-javascript-plain colored"></i></span>
+                                                <span>script.js</span>
+                                                <div class="item-actions">
+                                                    <button class="action-btn rename-btn" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                                                    <button class="action-btn delete-btn" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Assets folder and its contents have been removed -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="monaco-editor-container">
+                            <div id="monaco-editor"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel-container preview-container preview-desktop">
+                <iframe id="preview-iframe" class="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <div id="create-item-popup" class="popup-overlay" style="display: none;">
+        <div class="popup-content">
+            <h3 id="popup-title">Create New</h3>
+            <input type="text" id="popup-input" placeholder="Enter name...">
+            <div class="popup-actions">
+                <button id="popup-cancel-btn" class="btn secondary">Cancel</button>
+                <button id="popup-create-btn" class="btn primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-confirm-popup" class="popup-overlay" style="display: none;">
+        <div class="popup-content">
+            <h3 id="delete-popup-title">Confirm Deletion</h3>
+            <p id="delete-popup-message" style="margin-bottom: 20px;"></p>
+        <div class="popup-actions">
+            <button id="delete-cancel-btn" class="btn secondary">Cancel</button>
+            <button id="delete-confirm-btn" class="btn danger">Delete</button>
+        </div>
+    </div>
+    </div>
+
+    <div id="toast-message" class="toast-message"></div>
+
+    <!-- Monaco Editor Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs/loader.js"></script>
+    <script>
+        // Initialize Monaco Editor
+        require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs' }});
+        
+        const fileSystem = {
+            'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern SaaS Landing</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer><\/script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">SaaS<span>Pro</span></div>
+                <ul>
+                    <li><a href="#">Features</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+                <button class="btn">Get Started</button>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Transform Your Business with Our SaaS Solution</h1>
+                <p>The all-in-one platform to manage, analyze, and grow your business efficiently</p>
+                <div class="cta-buttons">
+                    <button class="btn primary">Start Free Trial</button>
+                    <button class="btn secondary">View Demo</button>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="placeholder">Dashboard Preview</div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>`,
+            'styles.css': `/* Global Styles */
+:root {
+    --primary: #8b5cf6;
+    --primary-dark: #7c3aed;
+    --dark: #1e293b;
+    --light: #f1f5f9;
+    --gray: #94a3b8;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: white;
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn.primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn.secondary {
+    background-color: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn.secondary:hover {
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+/* Header Styles */
+header {
+    padding: 20px 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.logo span {
+    color: var(--primary);
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: var(--dark);
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+nav ul li a:hover {
+    color: var(--primary);
+}
+
+/* Hero Section */
+.hero {
+    padding: 80px 0;
+}
+
+.hero-content {
+    max-width: 600px;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    line-height: 1.2;
+    margin-bottom: 20px;
+}
+
+.hero-content p {
+    font-size: 1.25rem;
+    color: var(--gray);
+    margin-bottom: 30px;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 16px;
+}
+
+.hero-image {
+    flex: 1;
+    background: linear-gradient(145deg, #8b5cf6, #7c3aed);
+    border-radius: 20px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+@media (min-width: 768px) {
+    .hero .container {
+        display: flex;
+        align-items: center;
+        gap: 60px;
+    }
+}`,
+            'script.js': `console.log("Hello from script.js!");
+
+document.addEventListener('DOMContentLoaded', () => {
+    const heroButton = document.querySelector('.hero .btn.primary');
+    if (heroButton) {
+        heroButton.addEventListener('click', () => {
+            console.log('Thanks for starting your free trial!');
+        });
+    }
+
+    document.querySelectorAll('header nav a').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+        });
+    });
+});`
+        };
+        let activeFile = 'index.html';
+
+        require(['vs/editor/editor.main'], function() {
+            // Create editor instance
+            const editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+                value: fileSystem[activeFile],
+                language: 'html',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                lineNumbers: 'on',
+                roundedSelection: false,
+                scrollbar: {
+                    vertical: 'auto',
+                    horizontal: 'auto'
+                }
+            });
+
+            // Update fileSystem when content changes
+            editor.onDidChangeModelContent(() => {
+                fileSystem[activeFile] = editor.getValue();
+                if (document.body.classList.contains('preview-mode')) {
+                    updatePreview();
+                }
+            });
+            
+            // Set the editor instance in global scope for other functions
+            window.monacoEditor = editor;
+        });
+
+        const viewToggleButton = document.getElementById('view-toggle-btn');
+        const chatInput = document.querySelector('.chat-input');
+        const sendButton = document.querySelector('.send-button');
+        const chatMessages = document.querySelector('.chat-messages');
+        const resizeHandle = document.querySelector('.resize-handle');
+        const chatPanel = document.querySelector('.chat-panel');
+        const mainContainer = document.querySelector('.main-container');
+        const fileTree = document.getElementById('file-tree');
+        const newFileBtn = document.getElementById('new-file-btn');
+        const newFolderBtn = document.getElementById('new-folder-btn');
+        const toggleChatBtn = document.getElementById('toggle-chat-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const openPreviewBtn = document.getElementById('open-preview-btn');
+        
+        // Track currently selected item and parent folder for new items
+        let currentSelection = null;
+        let currentParent = fileTree.querySelector('.folder.open') || fileTree.querySelector('.folder');
+        
+        // Toggle between code and preview
+        const codeIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-code"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`;
+        const previewIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+
+        let isPreview = false;
+        viewToggleButton.innerHTML = previewIcon;
+
+
+        viewToggleButton.addEventListener('click', function() {
+            isPreview = !isPreview;
+            document.body.classList.toggle('preview-mode', isPreview);
+            
+            if (isPreview) {
+                viewToggleButton.innerHTML = codeIcon;
+                updatePreview();
+            } else {
+                viewToggleButton.innerHTML = previewIcon;
+            }
+        });
+
+        // Update preview with actual code content
+        function updatePreview() {
+            const iframe = document.getElementById('preview-iframe');
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            let htmlContent = fileSystem['index.html'];
+
+            // Inline CSS
+            const cssRegex = /<link\s+rel="stylesheet"\s+href="([^"]+)"[^>]*>/g;
+            htmlContent = htmlContent.replace(cssRegex, (match, href) => {
+                if (fileSystem[href]) {
+                    return `<style>${fileSystem[href]}</style>`;
+                }
+                return match; // Keep original link if file not found
+            });
+
+            // Inline JS
+            const jsRegex = /<script\s+src="([^"]+)"[^>]*><\/script>/g;
+            htmlContent = htmlContent.replace(jsRegex, (match, src) => {
+                if (fileSystem[src]) {
+                    return `<script>${fileSystem[src]}<\/script>`;
+                }
+                return match; // Keep original script if file not found
+            });
+
+            iframeDoc.open();
+            iframeDoc.write(htmlContent);
+            iframeDoc.close();
+        }
+
+        function openPreviewInNewTab() {
+            let htmlContent = fileSystem['index.html'];
+
+            // Inline CSS
+            const cssRegex = /<link\s+rel="stylesheet"\s+href="([^"]+)"[^>]*>/g;
+            htmlContent = htmlContent.replace(cssRegex, (match, href) => {
+                if (fileSystem[href]) {
+                    return `<style>${fileSystem[href]}</style>`;
+                }
+                return match;
+            });
+
+            // Inline JS
+            const jsRegex = /<script\s+src="([^"]+)"[^>]*><\/script>/g;
+            htmlContent = htmlContent.replace(jsRegex, (match, src) => {
+                if (fileSystem[src]) {
+                    return `<script>${fileSystem[src]}<\/script>`;
+                }
+                return match;
+            });
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
+        // File tree functionality
+        fileTree.addEventListener('click', function(e) {
+            const folderHeader = e.target.closest('.folder-header');
+            const fileItem = e.target.closest('.file-item');
+            
+            // Handle folder toggle
+            if (folderHeader) {
+                const folder = folderHeader.closest('.folder');
+                folder.classList.toggle('open');
+                
+                // Set as current selection
+                clearSelection();
+                folderHeader.classList.add('active');
+                currentSelection = folder;
+                currentParent = folder.querySelector('.folder-children') || folder;
+            }
+            
+            // Handle file selection
+            if (fileItem) {
+                const file = fileItem.closest('.file');
+                
+                // Set as active file
+                clearSelection();
+                fileItem.classList.add('active');
+                currentSelection = file;
+                
+                // Load file content
+                const fileName = file.dataset.name;
+                const fileType = file.dataset.type;
+                
+                activeFile = fileName;
+
+                if (window.monacoEditor) {
+                    window.monacoEditor.setValue(fileSystem[fileName] || '');
+                    monaco.editor.setModelLanguage(window.monacoEditor.getModel(), fileType || 'plaintext');
+                }
+            }
+        });
+
+        // Clear all active selections
+        function clearSelection() {
+            document.querySelectorAll('.folder-header.active, .file-item.active').forEach(item => {
+                item.classList.remove('active');
+            });
+        }
+
+        // Send message functionality
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            const userMessageElement = document.createElement('div');
+            userMessageElement.classList.add('message', 'user');
+            userMessageElement.textContent = message;
+            chatMessages.appendChild(userMessageElement);
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Add a temporary "thinking" message for the AI
+            const thinkingMessageElement = document.createElement('div');
+            thinkingMessageElement.classList.add('message', 'ai');
+            thinkingMessageElement.textContent = 'Thinking...';
+            chatMessages.appendChild(thinkingMessageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                // IMPORTANT: Replace with your Deno Deploy URL
+                const response = await fetch('https://wise-zebra-92.deno.dev', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Update the "thinking" message with the actual reply
+                thinkingMessageElement.textContent = data.reply;
+
+            } catch (error) {
+                console.error('Error calling backend:', error);
+                thinkingMessageElement.textContent = 'Sorry, I encountered an error. Please check the console and your backend deployment.';
+                thinkingMessageElement.style.backgroundColor = '#e53e3e'; // Make error more visible
+            }
+        }
+
+        // Resizable chat panel
+        let isResizing = false;
+        let startX;
+        let startWidth;
+
+        resizeHandle.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = parseInt(document.defaultView.getComputedStyle(chatPanel).width, 10);
+            document.addEventListener('mousemove', resizePanel);
+            document.addEventListener('mouseup', stopResize);
+        });
+
+        function resizePanel(e) {
+            if (!isResizing) return;
+            
+            const newWidth = startWidth + (e.clientX - startX);
+            const minWidth = 200;
+            const maxWidth = mainContainer.clientWidth * 0.7;
+            
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
+                document.documentElement.style.setProperty('--chat-width', `${newWidth}px`);
+                document.documentElement.style.setProperty('--preview-width', `calc(100% - ${newWidth}px)`);
+            }
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resizePanel);
+            document.removeEventListener('mouseup', stopResize);
+        }
+        
+        const addImageBtn = document.getElementById('add-image-btn');
+        const editBtn = document.getElementById('edit-btn');
+        const chatModeBtn = document.getElementById('chat-mode-btn');
+
+        addImageBtn.addEventListener('click', () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    console.log('Selected file:', file.name);
+                    // You can add more logic here to handle the uploaded image
+                    showToast(`Image "${file.name}" selected.`);
+                }
+            };
+            fileInput.click();
+        });
+
+        editBtn.addEventListener('click', showComingSoonToast);
+        chatModeBtn.addEventListener('click', showComingSoonToast);
+
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toastMessage.classList.add('show');
+            setTimeout(() => {
+                toastMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initial setup
+        setTimeout(() => {
+            updatePreview();
+            
+            // Set initial selection
+            const initialFile = document.querySelector('.file.active .file-item');
+            if (initialFile) {
+                initialFile.classList.add('active');
+                currentSelection = document.querySelector('.file.active');
+            }
+        }, 1000);
+    
+      // Function to get the current active folder or the root folder
+        function getActiveFolder() {
+            let activeFolder = document.querySelector('.folder-header.active');
+            if (activeFolder) {
+                return activeFolder.closest('.folder');
+            }
+            // If no folder is active, return the main 'Project' folder
+            return fileTree.querySelector('.folder[data-name="Project"]');
+        }
+
+        // Function to add a new file to the file tree
+        // Function to get file icon based on extension
+        function getFileIcon(fileName) {
+            const extension = fileName.split('.').pop().toLowerCase();
+            const iconMap = {
+                'html': 'devicon-html5-plain',
+                'css': 'devicon-css3-plain',
+                'js': 'devicon-javascript-plain',
+                'json': 'devicon-json-plain',
+                'md': 'devicon-markdown-original',
+                'png': 'devicon-photoshop-plain',
+                'jpg': 'devicon-photoshop-plain',
+                'jpeg': 'devicon-photoshop-plain',
+                'git': 'devicon-git-plain',
+            };
+            const iconClass = iconMap[extension] || 'feather-file-text';
+            if (iconMap[extension]) {
+                return `<i class="${iconClass} colored"></i>`;
+            }
+            // Fallback for feather icon
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        }
+
+        // Function to add a new file to the file tree
+        function addFileToTree(parentFolderElement, fileName, fileType) {
+            if (fileSystem.hasOwnProperty(fileName)) {
+                alert(`File "${fileName}" already exists.`);
+                return;
+            }
+
+            const newFile = document.createElement('div');
+            newFile.className = 'tree-item file';
+            newFile.dataset.name = fileName;
+            newFile.dataset.type = fileType;
+            
+            newFile.innerHTML = `
+                <div class="file-item">
+                    <span class="file-icon">${getFileIcon(fileName)}</span>
+                    <span>${fileName}</span>
+                    <div class="item-actions">
+                        <button class="action-btn rename-btn" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                        <button class="action-btn delete-btn" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                    </div>
+                </div>
+            `;
+            
+            const folderChildren = parentFolderElement.querySelector('.folder-children');
+            if (folderChildren) {
+                folderChildren.appendChild(newFile);
+                parentFolderElement.classList.add('open'); // Ensure parent folder is open
+                fileSystem[fileName] = ''; // Add to filesystem
+            }
+        }
+
+        // Function to add a new folder to the file tree
+        function addFolderToTree(parentFolderElement, folderName) {
+            const newFolder = document.createElement('div');
+            newFolder.className = 'tree-item folder';
+            newFolder.dataset.name = folderName;
+            
+            newFolder.innerHTML = `
+                <div class="folder-header">
+                    <span class="toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                    <span class="folder-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+                    <span class="name">${folderName}</span>
+                    <div class="item-actions">
+                        <button class="action-btn add-file-btn" title="New File"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-plus"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg></button>
+                        <button class="action-btn add-folder-btn" title="New Folder"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder-plus"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg></button>
+                        <button class="action-btn rename-btn" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                        <button class="action-btn delete-btn" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                    </div>
+                </div>
+                <div class="folder-children"></div>
+            `;
+            
+            const folderChildren = parentFolderElement.querySelector('.folder-children');
+            if (folderChildren) {
+                folderChildren.appendChild(newFolder);
+                parentFolderElement.classList.add('open'); // Ensure parent folder is open
+            }
+        }
+
+        const popup = document.getElementById('create-item-popup');
+        const popupTitle = document.getElementById('popup-title');
+        const popupInput = document.getElementById('popup-input');
+        const popupCreateBtn = document.getElementById('popup-create-btn');
+        const popupCancelBtn = document.getElementById('popup-cancel-btn');
+
+        let createMode = ''; // 'file' or 'folder'
+
+        function showPopup(mode) {
+            createMode = mode;
+            popupTitle.textContent = mode === 'file' ? 'Create New File' : 'Create New Folder';
+            popupInput.placeholder = mode === 'file' ? 'Enter filename...' : 'Enter folder name...';
+            popupInput.value = '';
+            popup.style.display = 'flex';
+            popupInput.focus();
+        }
+
+        function hidePopup() {
+            popup.style.display = 'none';
+        }
+
+        popupCreateBtn.addEventListener('click', function() {
+            const name = popupInput.value.trim();
+            if (name) {
+                const activeFolder = getActiveFolder();
+                if (createMode === 'file') {
+                    const fileExtension = name.split('.').pop().toLowerCase();
+                    let fileType = 'html'; // Default to html
+                    if (['css', 'scss', 'less'].includes(fileExtension)) {
+                        fileType = 'css';
+                    } else if (['js', 'ts'].includes(fileExtension)) {
+                        fileType = 'javascript';
+                    }
+                    addFileToTree(activeFolder, name, fileType);
+                } else if (createMode === 'folder') {
+                    addFolderToTree(activeFolder, name);
+                }
+                hidePopup();
+            }
+        });
+
+        popupCancelBtn.addEventListener('click', hidePopup);
+        popupInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                popupCreateBtn.click();
+            }
+        });
+
+        // Event listener for new file button
+        newFileBtn.addEventListener('click', function() {
+            showPopup('file');
+        });
+
+        // Event listener for new folder button
+        newFolderBtn.addEventListener('click', function() {
+            showPopup('folder');
+        });
+
+        fileTree.addEventListener('click', function(e) {
+            const target = e.target.closest('.action-btn');
+            if (!target) return;
+
+            const item = e.target.closest('.tree-item');
+            const itemName = item.dataset.name;
+
+            if (target.classList.contains('add-file-btn')) {
+                currentParent = item;
+                showPopup('file');
+            } else if (target.classList.contains('add-folder-btn')) {
+                currentParent = item;
+                showPopup('folder');
+            } else if (target.classList.contains('rename-btn')) {
+                const isFolder = item.classList.contains('folder');
+                const newName = prompt(`Enter new name for ${itemName}:`, itemName);
+                if (newName && newName !== itemName) {
+                    if (isFolder) {
+                        item.dataset.name = newName;
+                        item.querySelector('.name').textContent = newName;
+                    } else {
+                        fileSystem[newName] = fileSystem[itemName];
+                        delete fileSystem[itemName];
+                        item.dataset.name = newName;
+                        item.querySelector('span:last-child').textContent = newName;
+                        if (activeFile === itemName) {
+                            activeFile = newName;
+                        }
+                    }
+                }
+            } else if (target.classList.contains('delete-btn')) {
+                showDeletePopup(item);
+            }
+        });
+
+        const deletePopup = document.getElementById('delete-confirm-popup');
+        const deletePopupMessage = document.getElementById('delete-popup-message');
+        const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+        const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+        let itemToDelete = null;
+
+        function showDeletePopup(item) {
+            itemToDelete = item;
+            const itemName = item.dataset.name;
+            const isFolder = item.classList.contains('folder');
+            deletePopupMessage.textContent = `Are you sure you want to delete this ${isFolder ? 'folder' : 'file'}: "${itemName}"?`;
+            deletePopup.style.display = 'flex';
+        }
+
+        function hideDeletePopup() {
+            deletePopup.style.display = 'none';
+            itemToDelete = null;
+        }
+
+        deleteConfirmBtn.addEventListener('click', function() {
+            if (itemToDelete) {
+                const itemName = itemToDelete.dataset.name;
+                const isFolder = itemToDelete.classList.contains('folder');
+                
+                if (isFolder) {
+                    itemToDelete.remove();
+                } else {
+                    delete fileSystem[itemName];
+                    itemToDelete.remove();
+                    if (activeFile === itemName) {
+                        window.monacoEditor.setValue('');
+                        activeFile = null;
+                    }
+                }
+                hideDeletePopup();
+            }
+        });
+
+        deleteCancelBtn.addEventListener('click', hideDeletePopup);
+
+        // Publish button functionality
+        const publishBtn = document.getElementById('publish-btn');
+        const githubBtn = document.getElementById('github-btn');
+        const supabaseBtn = document.getElementById('supabase-btn');
+        const toastMessage = document.getElementById('toast-message');
+
+        function showComingSoonToast() {
+            toastMessage.textContent = 'Coming soon! This feature is under development.';
+            toastMessage.classList.add('show');
+
+            setTimeout(() => {
+                toastMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        publishBtn.addEventListener('click', showComingSoonToast);
+        githubBtn.addEventListener('click', showComingSoonToast);
+        supabaseBtn.addEventListener('click', showComingSoonToast);
+
+        openPreviewBtn.addEventListener('click', openPreviewInNewTab);
+
+        refreshBtn.addEventListener('click', () => {
+            updatePreview();
+            showToast('Preview refreshed!');
+        });
+
+        toggleChatBtn.addEventListener('click', function() {
+            mainContainer.classList.toggle('chat-hidden');
+            const isHidden = mainContainer.classList.contains('chat-hidden');
+            if (isHidden) {
+                toggleChatBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m12 9 3 3-3 3"/></svg>`;
+                toggleChatBtn.title = "Show Chat Panel";
+            } else {
+                toggleChatBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m13 9-3 3 3 3"/></svg>`;
+                toggleChatBtn.title = "Hide Chat Panel";
+            }
+        });
+
+        // Dropdown functionality
+        const logoContainer = document.getElementById('logo-container');
+        const dropdown = document.getElementById('header-dropdown');
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const appearanceBtn = document.getElementById('appearance-btn');
+        const agentModeBtn = document.getElementById('agent-mode-btn');
+        const apiKeyBtn = document.getElementById('api-key-btn');
+
+        logoContainer.addEventListener('click', (e) => {
+            // Prevent toast from showing when clicking dropdown items
+            if (!e.target.closest('.dropdown-item')) {
+                logoContainer.classList.toggle('open');
+                dropdown.classList.toggle('show');
+            }
+        });
+
+        dashboardBtn.addEventListener('click', showComingSoonToast);
+        settingsBtn.addEventListener('click', showComingSoonToast);
+        appearanceBtn.addEventListener('click', showComingSoonToast);
+        agentModeBtn.addEventListener('click', showComingSoonToast);
+        apiKeyBtn.addEventListener('click', showComingSoonToast);
+
+        // Close dropdown if clicked outside
+        window.addEventListener('click', function(e) {
+            if (!logoContainer.contains(e.target)) {
+                logoContainer.classList.remove('open');
+                dropdown.classList.remove('show');
+            }
+        });
+
+        const screenSizeToggleBtn = document.getElementById('screen-size-toggle-btn');
+        const previewContainer = document.querySelector('.preview-container');
+        const screenSizes = ['desktop', 'tablet', 'mobile'];
+        let currentScreenSizeIndex = 0;
+
+        const sizeIcons = {
+            desktop: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-desktop"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`,
+            tablet: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tablet"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>`,
+            mobile: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-smartphone"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>`
+        };
+
+        screenSizeToggleBtn.addEventListener('click', () => {
+            currentScreenSizeIndex = (currentScreenSizeIndex + 1) % screenSizes.length;
+            const newSize = screenSizes[currentScreenSizeIndex];
+            
+            previewContainer.classList.remove('preview-desktop', 'preview-tablet', 'preview-mobile');
+            previewContainer.classList.add(`preview-${newSize}`);
+            
+            screenSizeToggleBtn.innerHTML = sizeIcons[newSize];
+        });
+    </script>
+</body>
+</html>
